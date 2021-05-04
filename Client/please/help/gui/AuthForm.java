@@ -90,28 +90,8 @@ public class AuthForm extends JDialog {
     private void onSignIn() {
         if (initThings()) {
             CommandSender sender = new CommandSender(new Show(), (mainFrame, feedback) -> {
-                if (feedback == null) mainFrame.getAuthForm().setVisible(false);
-                else if (feedback instanceof ArrayList) {
-                    if (((ArrayList<?>) feedback).size() > 0){
-                        if (((ArrayList<?>) feedback).get(0) != null){
-                            mainFrame.getData().setLastHash(((Organization)(((ArrayList<?>)
-                                    feedback).get(0))).getCoordinates().getX());
-                        }
-                        ((ArrayList<?>) feedback).remove(0);
-                    }
-                    ((ArrayList<?>) feedback).forEach(p -> mainFrame.getData().getCollection().add((Organization) p));
-                    EventQueue.invokeLater(() -> {
-                        ((ArrayList<?>) feedback).forEach(p -> {
-                            VisualizingPanel panel = new VisualizingPanel((Organization) p);
-                            mainFrame.getOrgCircles().put(((Organization)p).getId(), panel);
-                            mainFrame.addVisualizingPanel(panel);
-                        });
-                        mainFrame.getOrgTableModel().fireTableDataChanged();
-                        mainFrame.setLoginToLabel(mainFrame.getData().getLogin());
-                        if (((ArrayList<?>) feedback).size() > 0)
-                            mainFrame.getData().updateFilteringFields();
-                    });
-                    mainFrame.startUpdate();
+                if (feedback instanceof ArrayList) {
+                    showHandler(mainFrame, feedback);
                     mainFrame.getAuthForm().setVisible(false);
                 } else {
                     ipField.setEnabled(true);
@@ -131,6 +111,29 @@ public class AuthForm extends JDialog {
         }
     }
 
+    public void showHandler(MainFrame mainFrame, Object feedback) {
+        mainFrame.getData().setServerID(((Organization)(((ArrayList<?>)
+                feedback).get(0))).getCoordinates().getX());
+        mainFrame.getData().setTimestamp(((Organization)(((ArrayList<?>)
+                feedback).get(0))).getId());
+        mainFrame.getData().setLastHash(((Organization)(((ArrayList<?>)
+                feedback).get(0))).getCoordinates().getY());
+        ((ArrayList<?>) feedback).remove(0);
+
+        ((ArrayList<?>) feedback).forEach(p -> mainFrame.getData().getCollection().add((Organization) p));
+        EventQueue.invokeLater(() -> {
+            ((ArrayList<?>) feedback).forEach(p -> {
+                VisualizingPanel panel = new VisualizingPanel((Organization) p);
+                mainFrame.getOrgCircles().put(((Organization)p).getId(), panel);
+                mainFrame.addVisualizingPanel(panel);
+            });
+            mainFrame.getOrgTableModel().fireTableDataChanged();
+            mainFrame.setLoginToLabel(mainFrame.getData().getLogin());
+            mainFrame.getData().updateFilteringFields();
+        });
+        mainFrame.checkUpdates();
+    }
+
     private void onSignUp(){
         if (initThings()){
             Create_new_user command = new Create_new_user();
@@ -145,29 +148,8 @@ public class AuthForm extends JDialog {
                 CommandSender sender = new CommandSender(command, (mainFrame, feedback) -> {
                     if (feedback instanceof String && feedback.equals("Новый пользователь создан.")) {
                         CommandSender showSender = new CommandSender(new Show(), (showFrame, showFeedback) -> {
-                            if (showFeedback == null) showFrame.getAuthForm().setVisible(false);
-                            else if (showFeedback instanceof ArrayList) {
-                                if (((ArrayList<?>) showFeedback).size() > 0){
-                                    if (((ArrayList<?>) showFeedback).get(0) != null){
-                                        showFrame.getData().setLastHash(((Organization)(((ArrayList<?>)
-                                                showFeedback).get(0))).getCoordinates().getX());
-                                    }
-                                    ((ArrayList<?>) showFeedback).remove(0);
-                                }
-                                ((ArrayList<?>) showFeedback).forEach(p -> showFrame.getData()
-                                        .getCollection().add((Organization) p));
-                                EventQueue.invokeLater(() -> {
-                                    ((ArrayList<?>) showFeedback).forEach(p -> {
-                                        VisualizingPanel panel = new VisualizingPanel((Organization) p);
-                                        showFrame.getOrgCircles().put(((Organization)p).getId(), panel);
-                                        showFrame.addVisualizingPanel(panel);
-                                    });
-                                    showFrame.getOrgTableModel().fireTableDataChanged();
-                                    showFrame.setLoginToLabel(showFrame.getData().getLogin());
-                                    if (((ArrayList<?>) showFeedback).size() > 0)
-                                        showFrame.getData().updateFilteringFields();
-                                });
-                                showFrame.startUpdate();
+                            if (showFeedback instanceof ArrayList) {
+                                showHandler(showFrame, showFeedback);
                                 showFrame.getAuthForm().setVisible(false);
 
                             } else {

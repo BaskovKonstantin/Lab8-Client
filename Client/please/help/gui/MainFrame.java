@@ -147,6 +147,10 @@ public class MainFrame extends JFrame{
 
         addDialog = new AddDialog(this);
 
+        updateItem.addActionListener(e -> addDialog.setCommand(AddDialog.AddCommands.UPDATE)
+                .setFieldsFromOrg(chosenOrg).setVisible(true));
+        removeItem.addActionListener(e -> showRemoveDialog(chosenOrg));
+
         orgTable.setComponentPopupMenu(popupMenu);
 
         orgTable.addMouseListener(new TablePopUpHelper(this));
@@ -312,15 +316,42 @@ public class MainFrame extends JFrame{
         System.exit(0);
     }
 
-    public void startUpdate(){
-        collectionUpdaterService.scheduleWithFixedDelay(() -> {
-            CommandSender sender = new CommandSender(new CheckEvents(data.getLastHash()), (frame, feedback) -> {
+    public void checkUpdates(){
+        collectionUpdaterService.schedule(() -> {
+            CommandSender sender = new CommandSender(new CheckEvents(data.getTimestamp(), data.getServerID()
+                    , data.getLastHash()), (frame, feedback) -> {
+                boolean normalUpdate = true;
                 if (feedback instanceof List){
+                    Organization selected;
+                    if (frame.getOrgTable().getSelectedRow() != -1){
+                        selected = frame.getData().getCollection().get(frame.getOrgTable()
+                                .convertRowIndexToModel(frame.getOrgTable().getSelectedRow()));
+                    }
+                    else selected = null;
                     Object lastEvent = ((List<?>) feedback).get(((List<?>) feedback).size() - 1);
-                    frame.getData().setLastHash(((ChangeEvent)lastEvent).getHash());
+                    frame.getData().setTimestamp(((ChangeEvent)lastEvent).getTimestamp());
+                    frame.getData().setServerID(((ChangeEvent)lastEvent).getServerID());
+                    if (((ChangeEvent)lastEvent).getType() != ChangeEvent.Type.STATUS){
+                        frame.getData().setLastHash(((ChangeEvent)lastEvent).getHash());
+                    }
+
                     for (Object e : (List<?>)feedback){
                         ChangeEvent event = (ChangeEvent)e;
-                        if ((event.getType()).equals(ChangeEvent.Type.ADDED)){
+                        if ((event.getType()).equals(ChangeEvent.Type.SHOW)){
+                            for (Organization org : frame.getData().getCollection()){
+                                EventQueue.invokeLater(() -> {
+                                    frame.getOrgCircles().get(org.getId()).deletePanel();
+                                    frame.getOrgCircles().remove(org.getId());
+                                });
+                            }
+                            frame.getData().getCollection().clear();
+                            CommandSender showSender = new CommandSender(new Show(), (showFrame, showFeedback) -> {
+                                authForm.showHandler(showFrame, showFeedback);
+                            });
+                            normalUpdate = false;
+                            commandSenderService.submit(showSender);
+                        }
+                        else if ((event.getType()).equals(ChangeEvent.Type.ADDED)){
                             frame.getData().getCollection().add(event.getOrg());
                             VisualizingPanel panel = new VisualizingPanel(event.getOrg());
                             frame.getOrgCircles().put(event.getOrg().getId(), panel);
@@ -338,8 +369,11 @@ public class MainFrame extends JFrame{
                         }
                         else if ((event.getType()).equals(ChangeEvent.Type.DELETED)){
                             frame.getData().getCollection().remove(event.getOrg());
-                            EventQueue.invokeLater(() -> frame.getOrgCircles().get(event.getOrg().getId())
-                                    .deletePanel());
+                            EventQueue.invokeLater(() -> {
+                                frame.getOrgCircles().get(event.getOrg().getId())
+                                        .deletePanel();
+                                frame.getOrgCircles().remove(event.getOrg().getId());
+                            });
                         }
                     }
                     EventQueue.invokeLater(() -> {
@@ -348,11 +382,11 @@ public class MainFrame extends JFrame{
                         frame.updateValueFilterChooser();
                     });
 
-                    if (frame.getPopupMenu().isVisible() && frame.getChosenOrg() != null){
-                        boolean chosenExist = false;
+                    if (selected != null){
+                        boolean selectedExist = false;
                         for (int i = 0; i < frame.getData().getCollection().size(); i++){
-                            if (frame.getData().getCollection().get(i).equals(frame.getChosenOrg())){
-                                chosenExist = true;
+                            if (frame.getData().getCollection().get(i).equals(selected)){
+                                selectedExist = true;
                                 int lambdaI = i;
                                 EventQueue.invokeLater(() -> frame
                                         .getOrgTable().setRowSelectionInterval(
@@ -361,15 +395,16 @@ public class MainFrame extends JFrame{
                                 break;
                             }
                         }
-                        if (!chosenExist) EventQueue.invokeLater(() -> frame.getPopupMenu().setVisible(false));
+                        if (!selectedExist) EventQueue.invokeLater(() -> frame.getPopupMenu().setVisible(false));
                     }
 
                 }
                 else if (feedback instanceof String) EventQueue.invokeLater(() -> frame
                         .setCommandInfo(feedback.toString()));
+                if (normalUpdate) EventQueue.invokeLater(frame::checkUpdates);
             });
             commandSenderService.submit(sender);
-        }, 1, 1, TimeUnit.SECONDS);
+        }, 1, TimeUnit.SECONDS);
     }
 
     private void initMenus(){
@@ -403,15 +438,10 @@ public class MainFrame extends JFrame{
         });
         deleteMenu.add(remove_greater);
 
-        updateItem.addActionListener(e ->
-                addDialog.setCommand(AddDialog.AddCommands.UPDATE).setFieldsFromOrg(chosenOrg).setVisible(true));
-
         JMenuItem clear = new JMenuItem("clear");
         clear.setToolTipText(resourceBundle.getString("clearTip"));
         clear.addActionListener(e -> showClearDialog());
         deleteMenu.add(clear);
-
-        removeItem.addActionListener(e -> showRemoveDialog(chosenOrg));
 
         JMenu funFactsMenu = new JMenu(resourceBundle.getString("funFactsMenu"));
         menuBar.add(funFactsMenu);
@@ -553,10 +583,9 @@ public class MainFrame extends JFrame{
         }
     }
 
-    public void deleteVisualizingPanel(Organization org){
-        JPanel parent = (JPanel) orgCircles.get(org.getId()).getParent();
-        parent.remove(orgCircles.get(org.getId()));
-        orgCircles.remove(org.getId());
+    public void deleteVisualizingPanel(VisualizingPanel panel){
+        JPanel parent = (JPanel) panel.getParent();
+        parent.remove(panel);
         if (parent.getComponentCount() == 0){
             square0List.removeIf(p -> p.panel.equals(parent));
             square1List.removeIf(p -> p.panel.equals(parent));
@@ -579,8 +608,8 @@ public class MainFrame extends JFrame{
 
     public void filterRows(){
         if (data.getCollection().size() != 0 && filterCheckBox.isSelected()){
-            String regex = (String) valueFilterChooser.getSelectedItem();
-            if (regex == null) regex = "^$";
+            String regex = "^" + (String) valueFilterChooser.getSelectedItem() + "$";
+            if (valueFilterChooser.getSelectedItem() == null) regex = "^$";
             rowSorter.setRowFilter(RowFilter.regexFilter(regex, columnFilterChooser.getSelectedIndex()));
         }
         else rowSorter.setRowFilter(null);

@@ -73,16 +73,19 @@ public class Client {
 
                     ByteBuffer buffer = ByteBuffer.allocate(50000);
                     long startWaiting = System.currentTimeMillis();
+                    boolean again = false;
 
                     while (buffer.position() < 4) {
                         socket.read(buffer);
                         if (System.currentTimeMillis() - startWaiting > 6000){
                             waitForUserAnswer();
+                            again = true;
                             break;
                         }
                     }
 
                     if (stop) break;
+                    if (again) continue;
 
                     buffer.flip();
                     int packageLength = buffer.getInt();
@@ -93,10 +96,12 @@ public class Client {
                         socket.read(buffer);
                         if (System.currentTimeMillis() - startWaiting > 6000){
                             waitForUserAnswer();
+                            again = true;
                             break;
                         }
                     }
                     if (stop) break;
+                    if (again) continue;
 
                     ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(buffer.array()));
                     Object feedback = input.readObject();

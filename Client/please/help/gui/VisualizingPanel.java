@@ -122,7 +122,7 @@ public class VisualizingPanel extends JPanel {
         if (org.getCoordinates().getX() != x || org.getCoordinates().getY() != y){
             x = org.getCoordinates().getX();
             y = org.getCoordinates().getY();
-            frame.deleteVisualizingPanel(org);
+            frame.deleteVisualizingPanel(this);
             frame.addVisualizingPanel(this);
         }
 
@@ -174,7 +174,7 @@ public class VisualizingPanel extends JPanel {
         if (timer.isRunning() && ((dr > 0 && radius >= newRadius) || (dr < 0 && radius <= newRadius))) {
             timer.stop();
             if (delete) {
-                frame.deleteVisualizingPanel(org);
+                frame.deleteVisualizingPanel(this);
             }
         }
     }

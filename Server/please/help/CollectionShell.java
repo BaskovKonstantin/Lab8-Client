@@ -12,6 +12,8 @@ import java.util.concurrent.*;
 
 public class CollectionShell {
 
+    public final static int serverID = (int) (Math.random() * 666);
+
     public final ConcurrentLinkedQueue<Organization> collection;
     private final ConcurrentLinkedDeque<ChangeEvent> changeEvents = new ConcurrentLinkedDeque<>();
     private final ScheduledExecutorService killers = Executors.newScheduledThreadPool(5);
@@ -109,11 +111,11 @@ public class CollectionShell {
     }
 
     public void registerEvent(Organization org, ChangeEvent.Type type){
-        changeEvents.addFirst(new ChangeEvent(org, type));
+        changeEvents.addFirst(new ChangeEvent(org, type, serverID, System.currentTimeMillis()));
         killers.schedule(() -> changeEvents.pollLast(), 30, TimeUnit.SECONDS);
-        /*for (ChangeEvent event : changeEvents){
-            System.out.println(event.getType() + " " + event.getHash());
-        }*/
+        //for (ChangeEvent event : changeEvents){
+        //    System.out.println(event.getType() + " " + event.getTimestamp() + " " + event.getServerID());
+        //}
     }
 
     public void exit() {

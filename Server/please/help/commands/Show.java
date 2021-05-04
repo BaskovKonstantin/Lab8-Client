@@ -1,6 +1,7 @@
 package please.help.commands;
 
 import please.help.CollectionManager;
+import please.help.CollectionShell;
 import please.help.organizationBuilding.Coordinates;
 import please.help.organizationBuilding.Organization;
 
@@ -23,13 +24,19 @@ public class Show extends Command{
     @Override
     public ArrayList<Organization> execute(CollectionManager manager, String login, String password, String locale) {
         ArrayList<Organization> result = new ArrayList<>(manager.collectionShell.collection);
+        Organization iamsosorry;
         if (manager.collectionShell.getChangeEvents().size() != 0) {
-            result.add(0, new Organization(null, new Coordinates(manager.collectionShell
-                    .getChangeEvents().peek().getHash(), 0), 0, null, null));
+            iamsosorry = new Organization(null, new Coordinates(CollectionShell.serverID
+                    , manager.collectionShell.getChangeEvents().peek().getHash()),
+                    0, null, null);
+            iamsosorry.setId(manager.collectionShell.getChangeEvents().peek().getTimestamp());
         }
         else {
-            result.add(0, null);
+            iamsosorry = new Organization(null, new Coordinates(CollectionShell.serverID
+                    , 0), 0, null, null);
+            iamsosorry.setId(System.currentTimeMillis());
         }
+        result.add(0, iamsosorry);
         return result;
     }
 

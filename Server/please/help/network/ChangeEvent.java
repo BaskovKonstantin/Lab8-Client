@@ -10,16 +10,20 @@ public class ChangeEvent implements Serializable {
     private static final long serialVersionUID = 20210412L;
     private final Organization org;
     private final Type type;
+    private final int serverID;
+    private final long timestamp;
     private final int hash;
 
-    public ChangeEvent(Organization org, Type type){
+    public ChangeEvent(Organization org, Type type, int serverID, long timestamp){
         this.org = org;
         this.type = type;
+        this.serverID = serverID;
+        this.timestamp = timestamp;
         this.hash = hashCode();
     }
 
     public enum Type{
-        ADDED, DELETED, UPDATED
+        ADDED, DELETED, UPDATED, SHOW, STATUS
     }
 
     public Organization getOrg() {
@@ -28,6 +32,14 @@ public class ChangeEvent implements Serializable {
 
     public Type getType() {
         return type;
+    }
+
+    public int getServerID() {
+        return serverID;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
     }
 
     public int getHash() {
@@ -44,6 +56,7 @@ public class ChangeEvent implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(org.hashCode(), type);
+        if (org == null) return type.hashCode();
+        else return Objects.hash(org.hashCode(), type);
     }
 }

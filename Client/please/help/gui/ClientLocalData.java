@@ -14,6 +14,8 @@ public class ClientLocalData {
     private final Map<Integer, List<String>> fieldsForFiltering = Collections.synchronizedMap(new HashMap<>());
     private String login;
     private String password;
+    private long timestamp = 0;
+    private int serverID = 0;
     private int lastHash = 0;
 
     {
@@ -24,6 +26,22 @@ public class ClientLocalData {
 
     public List<Organization> getCollection() {
         return collection;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public int getServerID() {
+        return serverID;
+    }
+
+    public void setServerID(int serverID) {
+        this.serverID = serverID;
     }
 
     public int getLastHash() {
